@@ -1,26 +1,16 @@
 #include <iostream>
 #include <map>
 
-
 #include "allocator.h"
 #include "container.h"
 
 bool PoolAllocatorConfig::allow_expand = false;
 bool PoolAllocatorConfig::elem_deall = false;
 
-// Пользовательские типы для демонстрации
-struct Key {
-    int id;
-    bool operator<(const Key& other) const { return id < other.id; }
-};
-
-struct Value {
-    int val;
-};
-
 int factorial(int n) {
-    if (n <= 1) return 1;
-    return n * factorial(n-1);
+    if (n <= 1)
+        return 1;
+    return n * factorial(n - 1);
 }
 
 int main(int argc, char** argv) {
@@ -40,12 +30,12 @@ int main(int argc, char** argv) {
 
     std::map<int, int> simpleMap;
     for (int i = 0; i < 10; ++i) {
-      simpleMap.emplace(i, factorial(i));
+        simpleMap.emplace(i, factorial(i));
     }
     //-----------------------------------------------------
 
     {
-        using MapAllocator = PoolAllocator<std::pair<const Key, Value>>;
+        using MapAllocator = PoolAllocator<std::pair<const int, int>>;
 
         MapAllocator::SetExpand(allow_expand);
         MapAllocator::SetElDeall(elem_deall);
@@ -57,16 +47,16 @@ int main(int argc, char** argv) {
             myMap.emplace(i, factorial(i));
         }
 
-        std::cout << "Map contents:\n";
+        LOG << "Map contents:\n";
         for (const auto& [key, value] : myMap)
             std::cout << key << " " << value << '\n';
 
         // Удаление элемента с key == 2
-        myMap.erase(2);
+        // myMap.erase(2);
 
-        std::cout << "After erasing key=2:\n";
-        for (const auto& [key, value] : myMap)
-            std::cout << "Key: " << key << ", Value: " << value << '\n';
+        // std::cout << "After erasing key=2:\n";
+        // for (const auto& [key, value] : myMap)
+        //     std::cout <<  key << " " << value << '\n';
 
         MapAllocator::cleanup();
     }
@@ -77,7 +67,7 @@ int main(int argc, char** argv) {
     for (int i = 0; i < 10; ++i) {
         simpleList.push_back(i);
     }
-    simpleList.display();
+    //simpleList.display();
 
     //-----------------------------------------
     {
@@ -88,7 +78,8 @@ int main(int argc, char** argv) {
             myList.push_back(i);
         }
         myList.display();
-        std::cout << "myList.size() = " << myList.size() << std::endl;
+
+        LOG << "myList.size() = " << myList.size() << std::endl;
 
         auto it = myList.begin();
         auto it_end = myList.end();
