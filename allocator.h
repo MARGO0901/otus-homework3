@@ -16,43 +16,44 @@ struct PoolAllocatorConfig {
 // SIMPLEST pool allocator - fixed size blocks with free list
 template <typename T> class PoolAllocator {
 private:
-    // Our memory pool
-    static char *pool;
-    static void **free_list; // Linked list of free blocks
-    static size_t block_size;
-    static size_t total_blocks;
-    static bool initialized;
+  // Our memory pool
+  static char *pool;
+  static void **free_list; // Linked list of free blocks
+  static size_t block_size;
+  static bool initialized;
 
-    static size_t POOL_BLOCKS; // Number of blocks in pool
+  static size_t total_blocks;
 
-    // Initialize pool with free list
-    static void init_pool() {
-        if (initialized)
-            return;
+  // Initialize pool with free list
+  static void init_pool(size_t num_blocks) {
+    if (initialized)
+      return;
 
-        block_size = sizeof(T) > sizeof(void *) ? sizeof(T) : sizeof(void *);
-        total_blocks = POOL_BLOCKS;
+    block_size = sizeof(T) > sizeof(void *) ? sizeof(T) : sizeof(void *);
+    total_blocks = num_blocks;
 
-        // Allocate big chunk
-        pool = static_cast<char *>(std::malloc(block_size * total_blocks));
+    // Allocate big chunk
+    pool = static_cast<char *>(std::malloc(block_size * total_blocks));
 
-        // Build free list - each block points to next free block
-        free_list = nullptr;
-        for (int i = total_blocks - 1; i >= 0; --i) {
-        void **block = reinterpret_cast<void **>(pool + i * block_size);
-        *block = free_list; // Point to previous free block
-        free_list = block;  // This block becomes head of free list
-        }
+    // Build free list - each block points to next free block
+    free_list = nullptr;
+    for (int i = total_blocks - 1; i >= 0; --i) {
+      void **block = reinterpret_cast<void **>(pool + i * block_size);
+      *block = free_list; // Point to previous free block
+      free_list = block;  // This block becomes head of free list
+    }
 
-        initialized = true;
-        LOG << "Pool initialized: " << total_blocks << " blocks of "
-                << block_size << " bytes\n";
+    initialized = true;
+    LOG << "Pool initialized: " << total_blocks << " blocks of " << block_size
+        << " bytes\n";
     }
 
 public:
     using value_type = T;
 
-    PoolAllocator() = default;
+    PoolAllocator(size_t block_size) { 
+        init_pool(block_size); 
+    };
 
     template <typename U> PoolAllocator(const PoolAllocator<U> &other) {}
 
@@ -63,8 +64,6 @@ public:
                         "back to malloc\n";
             return static_cast<T *>(std::malloc(n * sizeof(T)));
         }
-
-        init_pool();
 
         // Check if we have free blocks
         if (!free_list) {
@@ -163,23 +162,21 @@ public:
 };
 
 // Initialize static members
-template <typename T> 
+template <typename T>
 char *PoolAllocator<T>::pool = nullptr;
 
-template <typename T> 
+template <typename T>
 void **PoolAllocator<T>::free_list = nullptr;
 
-template <typename T> 
-size_t PoolAllocator<T>::POOL_BLOCKS = 10;
-
-template <typename T> 
+template <typename T>
 size_t PoolAllocator<T>::block_size = 0;
 
-template <typename T> 
+template <typename T>
 size_t PoolAllocator<T>::total_blocks = 0;
 
-template <typename T> 
+template <typename T>
 bool PoolAllocator<T>::initialized = false;
+
 
 // Required comparison operators
 template <typename T, typename U>

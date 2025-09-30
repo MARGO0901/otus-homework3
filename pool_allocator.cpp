@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
         MapAllocator::SetExpand(allow_expand);
         MapAllocator::SetElDeall(elem_deall);
 
-        std::map<int, int, std::less<int>, MapAllocator> myMap{MapAllocator()};
+        std::map<int, int, std::less<int>, MapAllocator> myMap{MapAllocator(10)};
 
         // Вставка элементов
         for (int i = 0; i < 10; i++) {
@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
     {
         using IntAllocator = PoolAllocator<Node<int>>;
 
-        CustomList<int, IntAllocator> myList{IntAllocator()};
+        CustomList<int, IntAllocator> myList{IntAllocator(10)};
         for (int i = 0; i < 10; ++i) {
             myList.push_back(i);
         }
