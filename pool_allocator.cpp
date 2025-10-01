@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
 
     //-----------------------------------------
     {
-        using IntAllocator = PoolAllocator<Node<int>, 10>;
+        using IntAllocator = PoolAllocator<Node<int>, 5>;
 
         CustomList<int, IntAllocator> myList{IntAllocator()};
         for (int i = 0; i < 10; ++i) {
