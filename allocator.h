@@ -14,7 +14,7 @@ struct PoolAllocatorConfig {
 
 
 // SIMPLEST pool allocator - fixed size blocks with free list
-template <typename T> class PoolAllocator {
+template <typename T, size_t N> class PoolAllocator {
 private:
   // Our memory pool
   static char *pool;
@@ -22,54 +22,52 @@ private:
   static size_t block_size;
   static bool initialized;
 
-  static size_t total_blocks;
-
   // Initialize pool with free list
-  static void init_pool(size_t num_blocks) {
+  static void init_pool() {
     if (initialized)
       return;
 
     block_size = sizeof(T) > sizeof(void *) ? sizeof(T) : sizeof(void *);
-    total_blocks = num_blocks;
 
     // Allocate big chunk
-    pool = static_cast<char *>(std::malloc(block_size * total_blocks));
+    pool = static_cast<char *>(::operator new(block_size * N));
 
     // Build free list - each block points to next free block
     free_list = nullptr;
-    for (int i = total_blocks - 1; i >= 0; --i) {
+    for (int i = N - 1; i >= 0; --i) {
       void **block = reinterpret_cast<void **>(pool + i * block_size);
       *block = free_list; // Point to previous free block
       free_list = block;  // This block becomes head of free list
     }
 
     initialized = true;
-    LOG << "Pool initialized: " << total_blocks << " blocks of " << block_size
+    LOG << "Pool initialized: " << N << " blocks of " << block_size
         << " bytes\n";
     }
 
 public:
     using value_type = T;
 
-    PoolAllocator(size_t block_size) { 
-        init_pool(block_size); 
-    };
+    PoolAllocator() = default;
 
-    template <typename U> PoolAllocator(const PoolAllocator<U> &other) {}
+    template <typename U> PoolAllocator(const PoolAllocator<U, N> &other) {}
 
     // Take first block from free list
     T *allocate(size_t n) {
+
+        init_pool();
+
         if (n != 1) {
             LOG << "Pool only supports single object allocation, falling "
                         "back to malloc\n";
-            return static_cast<T *>(std::malloc(n * sizeof(T)));
+            return static_cast<T *>(::operator new(n * sizeof(T)));
         }
 
         // Check if we have free blocks
         if (!free_list) {
             if (PoolAllocatorConfig::allow_expand) {
                 LOG << "Pool exhausted! Falling back to malloc\n";
-                return static_cast<T *>(std::malloc(sizeof(T)));
+                return static_cast<T *>(::operator new(sizeof(T)));
             } else {
                 throw std::bad_alloc();
             }
@@ -88,15 +86,15 @@ public:
     void deallocate(T *ptr, size_t n) {
         if (n != 1) {
             LOG << "Freeing non-pool memory\n";
-            std::free(ptr);
+            ::operator delete(ptr);
             return;
         }
 
         // Check if pointer is from our pool
         char *char_ptr = reinterpret_cast<char *>(ptr);
-        if (char_ptr < pool || char_ptr >= pool + (block_size * total_blocks)) {
+        if (char_ptr < pool || char_ptr >= pool + (block_size * N)) {
             LOG << "Freeing non-pool memory\n";
-            std::free(ptr);
+            ::operator delete(ptr);
             return;
         }
 
@@ -128,7 +126,7 @@ public:
         if (pool) {
             LOG << "[DEBUG] cleanup() - pool is allocated, freeing. "
                         << typeid(T).name() << "\n";
-            std::free(pool);
+            ::operator delete(pool);
             pool = nullptr;
             free_list = nullptr;
             initialized = false;
@@ -149,7 +147,7 @@ public:
 
     template <typename U> 
     struct rebind {
-        using other = PoolAllocator<U>;
+        using other = PoolAllocator<U, N>;
     };
 
     static void SetExpand(bool expand) {
@@ -162,29 +160,26 @@ public:
 };
 
 // Initialize static members
-template <typename T>
-char *PoolAllocator<T>::pool = nullptr;
+template <typename T, size_t N>
+char *PoolAllocator<T, N>::pool = nullptr;
 
-template <typename T>
-void **PoolAllocator<T>::free_list = nullptr;
+template <typename T, size_t N>
+void **PoolAllocator<T, N>::free_list = nullptr;
 
-template <typename T>
-size_t PoolAllocator<T>::block_size = 0;
+template <typename T, size_t N>
+size_t PoolAllocator<T, N>::block_size = 0;
 
-template <typename T>
-size_t PoolAllocator<T>::total_blocks = 0;
-
-template <typename T>
-bool PoolAllocator<T>::initialized = false;
+template <typename T, size_t N>
+bool PoolAllocator<T, N>::initialized = false;
 
 
 // Required comparison operators
-template <typename T, typename U>
-bool operator==(const PoolAllocator<T> &, const PoolAllocator<U> &) {
+template <typename T, size_t N, typename U, size_t M>
+bool operator==(const PoolAllocator<T, N> &, const PoolAllocator<U, M> &) {
     return true;
 }
 
-template <typename T, typename U>
-bool operator!=(const PoolAllocator<T> &, const PoolAllocator<U> &) {
+template <typename T, size_t N, typename U, size_t M>
+bool operator!=(const PoolAllocator<T, N> &, const PoolAllocator<U, M> &) {
     return false;
 }

@@ -35,12 +35,13 @@ int main(int argc, char** argv) {
     //-----------------------------------------------------
 
     {
-        using MapAllocator = PoolAllocator<std::pair<const int, int>>;
+        using MapAllocator = PoolAllocator<std::pair<const int, int>, 5>;
+        MapAllocator alloc;
 
-        MapAllocator::SetExpand(allow_expand);
-        MapAllocator::SetElDeall(elem_deall);
+        alloc.SetExpand(allow_expand);
+        alloc.SetElDeall(elem_deall);
 
-        std::map<int, int, std::less<int>, MapAllocator> myMap{MapAllocator(10)};
+        std::map<int, int, std::less<int>, MapAllocator> myMap(alloc);
 
         // Вставка элементов
         for (int i = 0; i < 10; i++) {
@@ -58,7 +59,7 @@ int main(int argc, char** argv) {
         // for (const auto& [key, value] : myMap)
         //     std::cout <<  key << " " << value << '\n';
 
-        MapAllocator::cleanup();
+        alloc.cleanup();
     }
 
     //-----------------------------------------------
@@ -71,9 +72,9 @@ int main(int argc, char** argv) {
 
     //-----------------------------------------
     {
-        using IntAllocator = PoolAllocator<Node<int>>;
+        using IntAllocator = PoolAllocator<Node<int>, 10>;
 
-        CustomList<int, IntAllocator> myList{IntAllocator(10)};
+        CustomList<int, IntAllocator> myList{IntAllocator()};
         for (int i = 0; i < 10; ++i) {
             myList.push_back(i);
         }

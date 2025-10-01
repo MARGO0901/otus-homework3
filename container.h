@@ -13,8 +13,8 @@ struct Node {
     Node(T value): data(value), next(nullptr) {};
 };
 
-template<typename T>
-using MyPoolAllocator = PoolAllocator<T>;
+template<typename T, size_t N>
+using MyPoolAllocator = PoolAllocator<T, N>;
 
 template<typename T, typename Allocator = std::allocator<Node<T>>>
 class CustomList {
